@@ -1,0 +1,66 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
+
+android {
+    namespace 'com.myanmarsrt'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.myanmarsrt"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0.0"
+    }
+
+    signingConfigs {
+        release {
+            if (System.getenv("KEYSTORE_BASE64")) {
+                // CI: keystore is injected via GitHub secret
+                storeFile file("${rootDir}/release.keystore")
+                storePassword System.getenv("KEYSTORE_PASSWORD") ?: "android"
+                keyAlias System.getenv("KEY_ALIAS") ?: "myanmarsrt"
+                keyPassword System.getenv("KEY_PASSWORD") ?: "android"
+            }
+        }
+    }
+
+    buildTypes {
+        debug {
+            applicationIdSuffix ".debug"
+            debuggable true
+        }
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (System.getenv("KEYSTORE_BASE64")) {
+                signingConfig signingConfigs.release
+            } else {
+                // Unsigned release — sign manually or via GitHub Actions
+                signingConfig null
+            }
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.webkit:webkit:1.10.0'
+}

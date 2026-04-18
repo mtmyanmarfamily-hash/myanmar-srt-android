@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MyanmarSRT" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <item name="colorPrimary">#7C5CFC</item>
+        <item name="colorPrimaryVariant">#5B3FD4</item>
+        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="android:windowBackground">#05050A</item>
+        <item name="android:statusBarColor">#05050A</item>
+        <item name="android:navigationBarColor">#05050A</item>
+        <item name="android:windowLightStatusBar">false</item>
+    </style>
+</resources>

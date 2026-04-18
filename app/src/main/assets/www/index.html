@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>မြန်မာဘာသာ SRT</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+Myanmar:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #05050a;
+    --surface: #0e0e18;
+    --surface2: #16162a;
+    --border: #2a2a45;
+    --accent: #7c5cfc;
+    --accent2: #e84393;
+    --accent3: #00e5c8;
+    --text: #e8e8f0;
+    --text-muted: #6b6b90;
+    --success: #00e5a0;
+    --warn: #ffb800;
+    --error: #ff4d6d;
+    --radius: 12px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; }
+  body {
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(124,92,252,0.12) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 60% at 80% 80%, rgba(232,67,147,0.08) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .grid-overlay {
+    position: fixed; inset: 0;
+    background-image: linear-gradient(rgba(124,92,252,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,92,252,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none; z-index: 0;
+  }
+  .app {
+    position: relative; z-index: 1;
+    max-width: 600px; margin: 0 auto;
+    padding: 1.25rem 1rem 2rem;
+    display: flex; flex-direction: column; gap: 1rem;
+  }
+  header { display: flex; flex-direction: column; gap: 0.3rem; }
+  .logo-row { display: flex; align-items: center; gap: 0.75rem; }
+  .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; flex-shrink: 0;
+    box-shadow: 0 0 20px rgba(124,92,252,0.4);
+  }
+  h1 { font-size: 1.25rem; font-weight: 700; }
+  h1 span { font-family: 'Noto Sans Myanmar', sans-serif; color: var(--accent3); }
+  .tagline { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; padding-left: 52px; }
+
+  .api-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem;
+    display: flex; flex-direction: column; gap: 0.5rem;
+  }
+  .api-card label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+  .api-row { display: flex; gap: 0.5rem; align-items: center; }
+  .api-input-wrap { position: relative; flex: 1; }
+  .api-input-wrap input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.6rem 2.2rem 0.6rem 0.8rem;
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.78rem;
+    outline: none; transition: border-color 0.2s;
+  }
+  .api-input-wrap input:focus { border-color: var(--accent); }
+  .toggle-key {
+    position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
+    background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.75rem;
+  }
+  .api-status {
+    font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 20px; white-space: nowrap;
+  }
+  .api-status.valid { background: rgba(0,229,160,0.1); color: var(--success); border: 1px solid rgba(0,229,160,0.2); }
+  .api-status.empty { background: rgba(107,107,144,0.1); color: var(--text-muted); border: 1px solid var(--border); }
+
+  .steps-row { display: flex; position: relative; }
+  .steps-row::after {
+    content: ''; position: absolute; top: 16px; left: 20px; right: 20px;
+    height: 1px; background: var(--border); z-index: 0;
+  }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; position: relative; z-index: 1; }
+  .step-num {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.7rem; font-weight: 700; transition: all 0.3s;
+  }
+  .step.active .step-num { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 14px rgba(124,92,252,0.5); }
+  .step.done .step-num { background: var(--success); border-color: var(--success); color: #000; }
+  .step-label { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .step.active .step-label { color: var(--text); }
+  .step.done .step-label { color: var(--success); }
+
+  /* Upload zone */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: var(--radius);
+    padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
+    transition: all 0.3s; background: var(--surface); position: relative; overflow: hidden;
+  }
+  .upload-zone:active { border-color: var(--accent); }
+  .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+  .upload-text { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.4rem; }
+  .upload-sub { font-size: 0.68rem; color: var(--text-muted); line-height: 1.6; }
+  input[type="file"] { display: none; }
+
+  .file-bar {
+    display: none; background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 0.85rem 1rem;
+    align-items: center; gap: 0.75rem;
+  }
+  .file-bar.visible { display: flex; }
+  .file-icon { font-size: 1.25rem; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 0.78rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-size { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+  .options-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+  .option-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.85rem 1rem; }
+  .option-label { font-size: 0.62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+  select {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 0.5rem 0.7rem;
+    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.72rem;
+    outline: none; cursor: pointer; appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b90' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 0.6rem center;
+  }
+
+  .btn-primary {
+    width: 100%; padding: 0.9rem;
+    background: linear-gradient(135deg, var(--accent), #5b3fd4);
+    border: none; border-radius: var(--radius); color: white;
+    font-family: 'Space Mono', monospace; font-size: 0.85rem; font-weight: 700;
+    cursor: pointer; transition: all 0.2s; letter-spacing: 0.03em;
+  }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .progress-section { display: none; flex-direction: column; gap: 0.75rem; }
+  .progress-section.visible { display: flex; }
+  .progress-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
+  .progress-header { display: flex; justify-content: space-between; margin-bottom: 0.6rem; }
+  .progress-title { font-size: 0.75rem; font-weight: 700; }
+  .progress-pct { font-size: 0.7rem; color: var(--accent3); }
+  .progress-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-fill {
+    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3));
+    border-radius: 2px; transition: width 0.4s; width: 0%; position: relative;
+  }
+  .progress-fill::after {
+    content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 30px;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+    animation: shimmer 1s ease-in-out infinite;
+  }
+  @keyframes shimmer { 0%,100%{opacity:0} 50%{opacity:1} }
+  .log-area { margin-top: 0.6rem; font-size: 0.65rem; color: var(--text-muted); max-height: 72px; overflow-y: auto; line-height: 1.8; }
+  .log-line { display: block; }
+  .log-line.ok { color: var(--success); }
+  .log-line.err { color: var(--error); }
+
+  .result-section { display: none; flex-direction: column; gap: 0.75rem; }
+  .result-section.visible { display: flex; }
+  .result-header { display: flex; flex-direction: column; gap: 0.75rem; }
+  .result-title { font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+  .badge { font-size: 0.6rem; padding: 0.2rem 0.45rem; border-radius: 20px; background: rgba(0,229,200,0.1); border: 1px solid rgba(0,229,200,0.2); color: var(--accent3); }
+  .result-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .tabs { display: flex; gap: 0.2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.2rem; }
+  .tab { padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.62rem; cursor: pointer; font-family: 'Space Mono', monospace; border: none; background: none; color: var(--text-muted); font-weight: 700; }
+  .tab.active { background: var(--accent); color: white; }
+  .btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 0.45rem 0.9rem; font-family: 'Space Mono', monospace; font-size: 0.68rem; cursor: pointer; font-weight: 700; }
+  .btn-download { background: linear-gradient(135deg, var(--accent3), #00b89c); border: none; color: #000; border-radius: 8px; padding: 0.45rem 0.9rem; font-family: 'Space Mono', monospace; font-size: 0.68rem; cursor: pointer; font-weight: 700; }
+  .srt-preview {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 1rem; max-height: 280px;
+    overflow-y: auto; font-size: 0.7rem; line-height: 2;
+    white-space: pre-wrap; font-family: 'Space Mono', monospace;
+  }
+  .srt-entry-num { color: var(--accent); }
+  .srt-entry-time { color: var(--accent3); font-size: 0.62rem; }
+  .srt-entry-orig { color: var(--text-muted); }
+  .srt-entry-my { font-family: 'Noto Sans Myanmar', sans-serif; color: var(--text); font-size: 0.8rem; }
+  .error-box { display: none; background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.3); border-radius: var(--radius); padding: 0.85rem 1rem; font-size: 0.72rem; color: var(--error); line-height: 1.6; }
+  .error-box.visible { display: block; }
+  .btn-clear { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.65rem; cursor: pointer; font-family: 'Space Mono', monospace; }
+
+  footer { text-align: center; font-size: 0.58rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; }
+  ::-webkit-scrollbar { width: 3px; }
+  ::-webkit-scrollbar-track { background: var(--surface2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+</style>
+</head>
+<body>
+<div class="grid-overlay"></div>
+<div class="app">
+
+  <header>
+    <div class="logo-row">
+      <div class="logo-icon">🎬</div>
+      <h1>SRT → <span>မြန်မာ</span></h1>
+    </div>
+    <p class="tagline">Video subtitle extractor &amp; Burmese translator · Gemini AI</p>
+  </header>
+
+  <div class="api-card">
+    <label>Gemini API Key</label>
+    <div class="api-row">
+      <div class="api-input-wrap">
+        <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off">
+        <button class="toggle-key" id="toggleKey">👁</button>
+      </div>
+      <div class="api-status empty" id="apiStatus">not set</div>
+    </div>
+  </div>
+
+  <div class="steps-row">
+    <div class="step active" data-step="0"><div class="step-num">1</div><div class="step-label">Upload</div></div>
+    <div class="step" data-step="1"><div class="step-num">2</div><div class="step-label">Extract</div></div>
+    <div class="step" data-step="2"><div class="step-num">3</div><div class="step-label">Translate</div></div>
+    <div class="step" data-step="3"><div class="step-num">✓</div><div class="step-label">Done</div></div>
+  </div>
+
+  <div class="upload-zone" id="uploadZone">
+    <span class="upload-icon">🎥</span>
+    <div class="upload-text">Tap to select video</div>
+    <div class="upload-sub">MP4, MKV, MOV, AVI, WebM, Audio files<br>File is read locally — nothing uploaded to servers</div>
+    <input type="file" id="fileInput" accept="video/*,audio/*">
+  </div>
+
+  <div class="file-bar" id="fileBar">
+    <span class="file-icon">🎞️</span>
+    <div class="file-info">
+      <div class="file-name" id="fileName">—</div>
+      <div class="file-size" id="fileSize">—</div>
+    </div>
+    <button class="btn-clear" id="clearFile">✕</button>
+  </div>
+
+  <div class="options-row">
+    <div class="option-card">
+      <div class="option-label">Source Language</div>
+      <select id="sourceLang">
+        <option value="auto">Auto Detect</option>
+        <option value="en">English</option>
+        <option value="zh">Chinese</option>
+        <option value="ja">Japanese</option>
+        <option value="ko">Korean</option>
+        <option value="th">Thai</option>
+        <option value="id">Indonesian</option>
+        <option value="hi">Hindi</option>
+        <option value="fr">French</option>
+        <option value="de">German</option>
+        <option value="es">Spanish</option>
+      </select>
+    </div>
+    <div class="option-card">
+      <div class="option-label">Translation Style</div>
+      <select id="subtitleStyle">
+        <option value="natural">Natural</option>
+        <option value="literal">Literal</option>
+        <option value="formal">Formal</option>
+        <option value="simplified">Simplified</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <button class="btn-primary" id="processBtn" disabled>
+    ▶ &nbsp; Extract &amp; Translate to Burmese
+  </button>
+
+  <div class="progress-section" id="progressSection">
+    <div class="progress-card">
+      <div class="progress-header">
+        <span class="progress-title" id="progressTitle">Initializing…</span>
+        <span class="progress-pct" id="progressPct">0%</span>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="log-area" id="logArea"></div>
+    </div>
+  </div>
+
+  <div class="result-section" id="resultSection">
+    <div class="result-header">
+      <div class="result-title">✅ Done <span class="badge" id="entryCount">0 entries</span></div>
+      <div class="result-actions">
+        <div class="tabs">
+          <button class="tab active" id="tabBilingual" onclick="switchTab('bilingual')">Bilingual</button>
+          <button class="tab" id="tabMyanmar" onclick="switchTab('myanmar')">Myanmar</button>
+          <button class="tab" id="tabOriginal" onclick="switchTab('original')">Original</button>
+        </div>
+        <button class="btn-download" id="downloadBtn">⬇ Save SRT</button>
+      </div>
+    </div>
+    <div class="srt-preview" id="srtPreview"></div>
+  </div>
+
+  <footer>မြန်မာ SRT · Gemini 2.0 Flash · Audio processed on-device</footer>
+</div>
+
+<script>
+// ── Android bridge detection ───────────────────────────────────
+const isAndroid = (typeof AndroidBridge !== 'undefined') && AndroidBridge.isAndroid() === 'true';
+
+// State
+let selectedFile = null;
+let selectedUri = null;   // Android content:// URI
+let srtOriginal = '';
+let srtTranslated = '';
+let srtBilingual = '';
+let currentTab = 'bilingual';
+
+// ── API Key ────────────────────────────────────────────────────
+const apiKeyInput = document.getElementById('apiKey');
+const apiStatus = document.getElementById('apiStatus');
+const savedKey = localStorage.getItem('gemini_api_key') || '';
+if (savedKey) { apiKeyInput.value = savedKey; updateApiStatus(savedKey); }
+
+apiKeyInput.addEventListener('input', () => {
+  const v = apiKeyInput.value.trim();
+  localStorage.setItem('gemini_api_key', v);
+  updateApiStatus(v);
+  updateProcessBtn();
+});
+document.getElementById('toggleKey').addEventListener('click', () => {
+  apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
+});
+
+function updateApiStatus(k) {
+  if (!k) { apiStatus.textContent = 'not set'; apiStatus.className = 'api-status empty'; }
+  else if (k.length > 10) { apiStatus.textContent = '● set'; apiStatus.className = 'api-status valid'; }
+  else { apiStatus.textContent = 'too short?'; apiStatus.className = 'api-status empty'; }
+}
+
+// ── File selection ─────────────────────────────────────────────
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (f) handleFileObject(f);
+});
+
+// Android: accept external file URI injected by MainActivity
+window.injectExternalFile = function(uriString) {
+  if (!isAndroid) return;
+  selectedUri = uriString;
+  selectedFile = null;
+  const name = AndroidBridge.getFileName(uriString);
+  const size = AndroidBridge.getFileSize(uriString);
+  showFileBar(name, size);
+  updateProcessBtn();
+};
+
+function handleFileObject(file) {
+  selectedFile = file;
+  selectedUri = null;
+  showFileBar(file.name, file.size);
+  updateProcessBtn();
+}
+
+function showFileBar(name, size) {
+  hideError();
+  document.getElementById('uploadZone').style.display = 'none';
+  document.getElementById('fileBar').classList.add('visible');
+  document.getElementById('fileName').textContent = name;
+  document.getElementById('fileSize').textContent = formatBytes(Number(size));
+}
+
+document.getElementById('clearFile').addEventListener('click', () => {
+  selectedFile = null; selectedUri = null;
+  fileInput.value = '';
+  document.getElementById('uploadZone').style.display = '';
+  document.getElementById('fileBar').classList.remove('visible');
+  document.getElementById('resultSection').classList.remove('visible');
+  document.getElementById('progressSection').classList.remove('visible');
+  setStep(0);
+  updateProcessBtn();
+});
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+  return (b/1048576).toFixed(1) + ' MB';
+}
+
+function updateProcessBtn() {
+  const k = apiKeyInput.value.trim();
+  const hasFile = selectedFile || selectedUri;
+  document.getElementById('processBtn').disabled = !hasFile || k.length < 10;
+}
+updateProcessBtn();
+
+// ── Steps ──────────────────────────────────────────────────────
+function setStep(n) {
+  document.querySelectorAll('.step').forEach((el, i) => {
+    el.classList.remove('active','done');
+    if (i < n) el.classList.add('done');
+    if (i === n) el.classList.add('active');
+  });
+}
+
+// ── Log ────────────────────────────────────────────────────────
+function log(msg, type = '') {
+  const la = document.getElementById('logArea');
+  const s = document.createElement('span');
+  s.className = 'log-line' + (type ? ' '+type : '');
+  s.textContent = '› ' + msg;
+  la.appendChild(s);
+  la.appendChild(document.createElement('br'));
+  la.scrollTop = la.scrollHeight;
+}
+function setProgress(pct, title) {
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+  if (title) document.getElementById('progressTitle').textContent = title;
+}
+function showError(msg) { const b = document.getElementById('errorBox'); b.textContent = '⚠ '+msg; b.classList.add('visible'); }
+function hideError() { document.getElementById('errorBox').classList.remove('visible'); }
+
+// ── Pipeline ───────────────────────────────────────────────────
+document.getElementById('processBtn').addEventListener('click', runPipeline);
+
+async function runPipeline() {
+  hideError();
+  const key = apiKeyInput.value.trim();
+  if (!key || (!selectedFile && !selectedUri)) return;
+
+  document.getElementById('processBtn').disabled = true;
+  document.getElementById('logArea').innerHTML = '';
+  document.getElementById('progressSection').classList.add('visible');
+  document.getElementById('resultSection').classList.remove('visible');
+  setStep(1);
+  setProgress(2, 'Reading file…');
+
+  try {
+    log('Reading media file…');
+    let base64Data, mimeType, fileName;
+
+    if (isAndroid && selectedUri) {
+      // Use native bridge to read content:// URI
+      log('Reading via Android bridge…');
+      base64Data = await readFileViaBridge(selectedUri);
+      mimeType = AndroidBridge.getMimeType(selectedUri);
+      fileName = AndroidBridge.getFileName(selectedUri);
+    } else {
+      // Web FileReader
+      base64Data = await fileToBase64(selectedFile);
+      mimeType = selectedFile.type || 'video/mp4';
+      fileName = selectedFile.name;
+    }
+
+    if (!base64Data) throw new Error('Failed to read file. Try a smaller file or different format.');
+    log('File read OK (' + formatBytes(base64Data.length * 0.75) + ')', 'ok');
+
+    setProgress(20, 'Transcribing with Gemini…');
+    setStep(1);
+    const sourceLang = document.getElementById('sourceLang').value;
+    log('Transcribing audio…');
+    const rawTranscript = await transcribeWithGemini(key, base64Data, mimeType, sourceLang);
+    log('Transcription done', 'ok');
+
+    setProgress(55, 'Building SRT…');
+    const srtEntries = parseTranscriptToSRT(rawTranscript);
+    if (srtEntries.length === 0) throw new Error('No subtitles found. Ensure the video has audible speech.');
+    srtOriginal = entriesToSRT(srtEntries, false);
+    log('SRT: ' + srtEntries.length + ' entries', 'ok');
+
+    setProgress(65, 'Translating to Burmese…');
+    setStep(2);
+    const style = document.getElementById('subtitleStyle').value;
+    const translated = await translateSRT(key, srtEntries, style);
+    log('Translation complete 🎉', 'ok');
+
+    srtTranslated = entriesToSRT(translated, true);
+    srtBilingual = entriesToSRTBilingual(translated);
+    setProgress(100, 'Complete!');
+    setStep(3);
+
+    showResult(translated, fileName);
+
+  } catch(err) {
+    showError(err.message || String(err));
+    log('Error: ' + (err.message || err), 'err');
+    setProgress(0, 'Failed');
+    document.getElementById('processBtn').disabled = false;
+    setStep(0);
+  }
+}
+
+// ── File reading ───────────────────────────────────────────────
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function readFileViaBridge(uri) {
+  return new Promise((resolve) => {
+    // AndroidBridge.readFileAsBase64 is synchronous but may block UI
+    // Run in a small timeout to keep UI responsive
+    setTimeout(() => {
+      const b64 = AndroidBridge.readFileAsBase64(uri);
+      resolve(b64);
+    }, 50);
+  });
+}
+
+// ── Gemini transcription ───────────────────────────────────────
+async function transcribeWithGemini(apiKey, base64Data, mimeType, sourceLang) {
+  const langHint = sourceLang === 'auto' ? 'Detect the language automatically.' : `Audio language: ${sourceLang}.`;
+  const prompt = `${langHint}
+Transcribe ALL speech from this video/audio. For each subtitle segment output EXACTLY this format:
+[HH:MM:SS,mmm --> HH:MM:SS,mmm] Text here.
+
+Rules: 1-2 sentences per segment, ~5-10s each. Estimate timing if unsure (~2.5 words/sec).
+Output ONLY the timestamped lines — nothing else.`;
+
+  let gMime = mimeType || 'video/mp4';
+  if (gMime === 'video/quicktime') gMime = 'video/mp4';
+  if (gMime === 'video/x-matroska') gMime = 'video/mp4';
+
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          parts: [
+            { inlineData: { mimeType: gMime, data: base64Data } },
+            { text: prompt }
+          ]
+        }],
+        generationConfig: { maxOutputTokens: 8192 }
+      })
+    }
+  );
+  if (!resp.ok) {
+    const err = await resp.json().catch(() => ({}));
+    throw new Error('Gemini error: ' + (err.error?.message || resp.status + ' ' + resp.statusText));
+  }
+  const data = await resp.json();
+  const text = data.candidates?.[0]?.content?.parts?.map(p => p.text||'').join('') || '';
+  if (!text.trim()) throw new Error('Empty transcription. Check API key and that video has speech.');
+  return text;
+}
+
+// ── SRT parsing ────────────────────────────────────────────────
+function parseTranscriptToSRT(raw) {
+  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
+  const entries = [];
+  const re = /\[(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})\]\s*(.+)/;
+  for (const line of lines) {
+    const m = line.match(re);
+    if (m) entries.push({ index: entries.length+1, start: m[1].replace('.',','), end: m[2].replace('.',','), text: m[3].trim(), burmese: '' });
+  }
+  if (entries.length === 0) {
+    const sents = raw.split(/(?<=[.!?])\s+/).filter(s=>s.trim().length>3);
+    let t=0;
+    for (const s of sents) {
+      const dur = Math.max(2, s.split(' ').length/2.5);
+      entries.push({ index: entries.length+1, start: secsToSRT(t), end: secsToSRT(t+dur), text: s.trim(), burmese: '' });
+      t += dur+0.3;
+    }
+  }
+  return entries;
+}
+
+function secsToSRT(s) {
+  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=Math.floor(s%60), ms=Math.floor((s%1)*1000);
+  return `${pad(h)}:${pad(m)}:${pad(sec)},${pad(ms,3)}`;
+}
+function pad(n,l=2){ return String(n).padStart(l,'0'); }
+
+// ── Translation ────────────────────────────────────────────────
+async function translateSRT(apiKey, entries, style) {
+  const styleMap = {natural:'natural, conversational Burmese',literal:'literal word-for-word',formal:'formal literary Burmese',simplified:'simple easy Burmese'};
+  const styleGuide = styleMap[style] || 'natural Burmese';
+  const results = [];
+  const chunkSize = 40;
+  for (let i=0; i<entries.length; i+=chunkSize) {
+    const chunk = entries.slice(i, i+chunkSize);
+    setProgress(65 + Math.round((i/entries.length)*28), `Translating ${i+1}–${Math.min(i+chunkSize,entries.length)}…`);
+    log(`Batch ${Math.floor(i/chunkSize)+1}/${Math.ceil(entries.length/chunkSize)}…`);
+    const translated = await translateChunk(apiKey, chunk, styleGuide);
+    results.push(...translated);
+  }
+  return results;
+}
+
+async function translateChunk(apiKey, chunk, styleGuide) {
+  const inp = chunk.map(e=>({id:e.index,text:e.text}));
+  const prompt = `Translate to Burmese (မြန်မာဘာသာ). Style: ${styleGuide}.
+Return ONLY a JSON array with fields "id" and "burmese". No markdown, no extra text.
+Input: ${JSON.stringify(inp)}`;
+
+  const resp = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { maxOutputTokens: 4096, temperature: 0.3 }
+      })
+    }
+  );
+  if (!resp.ok) {
+    const err = await resp.json().catch(()=>({}));
+    throw new Error('Translation error: ' + (err.error?.message || resp.status));
+  }
+  const data = await resp.json();
+  let raw = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+  raw = raw.replace(/```json|```/g,'').trim();
+  let parsed;
+  try { parsed = JSON.parse(raw); }
+  catch { const m=raw.match(/\[[\s\S]+\]/); if(m) parsed=JSON.parse(m[0]); else throw new Error('Could not parse translation. Try again.'); }
+  const map = {};
+  for (const t of parsed) map[t.id] = t.burmese || '';
+  return chunk.map(e=>({...e, burmese: map[e.index]||e.text}));
+}
+
+// ── SRT output ─────────────────────────────────────────────────
+function entriesToSRT(entries, burmese) {
+  return entries.map(e=>`${e.index}\n${e.start} --> ${e.end}\n${burmese?e.burmese:e.text}\n`).join('\n');
+}
+function entriesToSRTBilingual(entries) {
+  return entries.map(e=>`${e.index}\n${e.start} --> ${e.end}\n${e.text}\n${e.burmese}\n`).join('\n');
+}
+
+// ── Result display ─────────────────────────────────────────────
+function showResult(entries, fileName) {
+  document.getElementById('entryCount').textContent = entries.length + ' entries';
+  document.getElementById('resultSection').classList.add('visible');
+  document.getElementById('processBtn').disabled = false;
+  window._resultFileName = (fileName || 'subtitle').replace(/\.[^.]+$/,'');
+  switchTab('bilingual');
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  ['bilingual','myanmar','original'].forEach(t => {
+    document.getElementById('tab'+t[0].toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
+  });
+  renderPreview();
+}
+window.switchTab = switchTab;
+
+function renderPreview() {
+  const preview = document.getElementById('srtPreview');
+  if (currentTab === 'original') { preview.textContent = srtOriginal; return; }
+  if (currentTab === 'myanmar') { preview.textContent = srtTranslated; return; }
+  preview.innerHTML = srtBilingual.split('\n\n').filter(b=>b.trim()).map(block=>{
+    const lines = block.split('\n');
+    if (lines.length < 3) return `<span class="srt-entry-orig">${block}</span>`;
+    const [num,time,...rest] = lines;
+    return `<span class="srt-entry-num">${num}</span>\n<span class="srt-entry-time">${time}</span>\n<span class="srt-entry-orig">${rest[0]||''}</span>\n<span class="srt-entry-my">${rest[1]||''}</span>\n`;
+  }).join('\n');
+}
+
+// ── Save SRT ───────────────────────────────────────────────────
+document.getElementById('downloadBtn').addEventListener('click', saveSRT);
+
+function saveSRT() {
+  const content = currentTab==='original' ? srtOriginal : currentTab==='myanmar' ? srtTranslated : srtBilingual;
+  const suffix = currentTab==='original'?'_original':currentTab==='myanmar'?'_myanmar':'_bilingual';
+  const name = (window._resultFileName||'subtitle') + suffix + '.srt';
+
+  if (isAndroid) {
+    // Use native Android Save dialog
+    AndroidBridge.saveSRT(content, name);
+  } else {
+    // Web download
+    const blob = new Blob(['\ufeff'+content], {type:'text/srt;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name; a.click();
+    URL.revokeObjectURL(url);
+  }
+}
+
+// Init
+updateApiStatus(savedKey);
+</script>
+</body>
+</html>
