@@ -113,7 +113,6 @@
   .step.active .step-label { color: var(--text); }
   .step.done .step-label { color: var(--success); }
 
-  /* Upload zone */
   .upload-zone {
     border: 2px dashed var(--border); border-radius: var(--radius);
     padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
@@ -333,6 +332,9 @@ let srtTranslated = '';
 let srtBilingual = '';
 let currentTab = 'bilingual';
 
+// ── Rate Limiting Helper ────────────────────────────────────────
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 // ── API Key ────────────────────────────────────────────────────
 const apiKeyInput = document.getElementById('apiKey');
 const apiStatus = document.getElementById('apiStatus');
@@ -365,7 +367,6 @@ fileInput.addEventListener('change', e => {
   if (f) handleFileObject(f);
 });
 
-// Android: accept external file URI injected by MainActivity
 window.injectExternalFile = function(uriString) {
   if (!isAndroid) return;
   selectedUri = uriString;
@@ -462,13 +463,11 @@ async function runPipeline() {
     let base64Data, mimeType, fileName;
 
     if (isAndroid && selectedUri) {
-      // Use native bridge to read content:// URI
       log('Reading via Android bridge…');
       base64Data = await readFileViaBridge(selectedUri);
       mimeType = AndroidBridge.getMimeType(selectedUri);
       fileName = AndroidBridge.getFileName(selectedUri);
     } else {
-      // Web FileReader
       base64Data = await fileToBase64(selectedFile);
       mimeType = selectedFile.type || 'video/mp4';
       fileName = selectedFile.name;
@@ -524,8 +523,6 @@ function fileToBase64(file) {
 
 function readFileViaBridge(uri) {
   return new Promise((resolve) => {
-    // AndroidBridge.readFileAsBase64 is synchronous but may block UI
-    // Run in a small timeout to keep UI responsive
     setTimeout(() => {
       const b64 = AndroidBridge.readFileAsBase64(uri);
       resolve(b64);
@@ -600,18 +597,26 @@ function secsToSRT(s) {
 }
 function pad(n,l=2){ return String(n).padStart(l,'0'); }
 
-// ── Translation ────────────────────────────────────────────────
+// ── Translation with Rate Limiting ───────────────────────────────
 async function translateSRT(apiKey, entries, style) {
   const styleMap = {natural:'natural, conversational Burmese',literal:'literal word-for-word',formal:'formal literary Burmese',simplified:'simple easy Burmese'};
   const styleGuide = styleMap[style] || 'natural Burmese';
   const results = [];
-  const chunkSize = 40;
+  const chunkSize = 25; // Adjusted chunk size
+  
   for (let i=0; i<entries.length; i+=chunkSize) {
     const chunk = entries.slice(i, i+chunkSize);
     setProgress(65 + Math.round((i/entries.length)*28), `Translating ${i+1}–${Math.min(i+chunkSize,entries.length)}…`);
     log(`Batch ${Math.floor(i/chunkSize)+1}/${Math.ceil(entries.length/chunkSize)}…`);
+    
     const translated = await translateChunk(apiKey, chunk, styleGuide);
     results.push(...translated);
+    
+    // Rate limiter cooldown (only wait if there's more to translate)
+    if (i + chunkSize < entries.length) {
+      log('Cooldown for rate limit (6s)...');
+      await sleep(6000); 
+    }
   }
   return results;
 }
@@ -641,8 +646,13 @@ Input: ${JSON.stringify(inp)}`;
   let raw = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
   raw = raw.replace(/```json|```/g,'').trim();
   let parsed;
-  try { parsed = JSON.parse(raw); }
-  catch { const m=raw.match(/\[[\s\S]+\]/); if(m) parsed=JSON.parse(m[0]); else throw new Error('Could not parse translation. Try again.'); }
+  try { 
+    parsed = JSON.parse(raw); 
+  } catch { 
+    const m=raw.match(/\[[\s\S]+\]/); 
+    if(m) parsed=JSON.parse(m[0]); 
+    else throw new Error('Could not parse translation data.'); 
+  }
   const map = {};
   for (const t of parsed) map[t.id] = t.burmese || '';
   return chunk.map(e=>({...e, burmese: map[e.index]||e.text}));
@@ -695,10 +705,8 @@ function saveSRT() {
   const name = (window._resultFileName||'subtitle') + suffix + '.srt';
 
   if (isAndroid) {
-    // Use native Android Save dialog
     AndroidBridge.saveSRT(content, name);
   } else {
-    // Web download
     const blob = new Blob(['\ufeff'+content], {type:'text/srt;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -707,7 +715,6 @@ function saveSRT() {
   }
 }
 
-// Init
 updateApiStatus(savedKey);
 </script>
 </body>
