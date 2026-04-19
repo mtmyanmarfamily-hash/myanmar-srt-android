@@ -3,712 +3,660 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>မြန်မာဘာသာ SRT</title>
+<meta name="theme-color" content="#0a0a0f">
+<title>မြန်မာဘာသာ SRT — Subtitle Translator</title>
+<link rel="manifest" href="manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Noto+Sans+Myanmar:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #05050a;
-    --surface: #0e0e18;
-    --surface2: #16162a;
-    --border: #2a2a45;
-    --accent: #7c5cfc;
-    --accent2: #e84393;
-    --accent3: #00e5c8;
-    --text: #e8e8f0;
-    --text-muted: #6b6b90;
-    --success: #00e5a0;
-    --warn: #ffb800;
-    --error: #ff4d6d;
-    --radius: 12px;
-    --safe-top: env(safe-area-inset-top, 0px);
-    --safe-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-  html { height: 100%; }
-  body {
-    min-height: 100%;
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Space Mono', monospace;
-    padding-top: var(--safe-top);
-    padding-bottom: var(--safe-bottom);
-    overflow-x: hidden;
-  }
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      radial-gradient(ellipse 60% 40% at 20% 20%, rgba(124,92,252,0.12) 0%, transparent 70%),
-      radial-gradient(ellipse 40% 60% at 80% 80%, rgba(232,67,147,0.08) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-  }
-  .grid-overlay {
-    position: fixed; inset: 0;
-    background-image: linear-gradient(rgba(124,92,252,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(124,92,252,0.04) 1px, transparent 1px);
-    background-size: 40px 40px;
-    pointer-events: none; z-index: 0;
-  }
-  .app {
-    position: relative; z-index: 1;
-    max-width: 600px; margin: 0 auto;
-    padding: 1.25rem 1rem 2rem;
-    display: flex; flex-direction: column; gap: 1rem;
-  }
-  header { display: flex; flex-direction: column; gap: 0.3rem; }
-  .logo-row { display: flex; align-items: center; gap: 0.75rem; }
-  .logo-icon {
-    width: 40px; height: 40px;
-    background: linear-gradient(135deg, var(--accent), var(--accent2));
-    border-radius: 10px; display: flex; align-items: center; justify-content: center;
-    font-size: 1.2rem; flex-shrink: 0;
-    box-shadow: 0 0 20px rgba(124,92,252,0.4);
-  }
-  h1 { font-size: 1.25rem; font-weight: 700; }
-  h1 span { font-family: 'Noto Sans Myanmar', sans-serif; color: var(--accent3); }
-  .tagline { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.08em; text-transform: uppercase; padding-left: 52px; }
-
-  .api-card {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 1rem;
-    display: flex; flex-direction: column; gap: 0.5rem;
-  }
-  .api-card label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
-  .api-row { display: flex; gap: 0.5rem; align-items: center; }
-  .api-input-wrap { position: relative; flex: 1; }
-  .api-input-wrap input {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 0.6rem 2.2rem 0.6rem 0.8rem;
-    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.78rem;
-    outline: none; transition: border-color 0.2s;
-  }
-  .api-input-wrap input:focus { border-color: var(--accent); }
-  .toggle-key {
-    position: absolute; right: 0.5rem; top: 50%; transform: translateY(-50%);
-    background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 0.75rem;
-  }
-  .api-status {
-    font-size: 0.65rem; padding: 0.2rem 0.5rem; border-radius: 20px; white-space: nowrap;
-  }
-  .api-status.valid { background: rgba(0,229,160,0.1); color: var(--success); border: 1px solid rgba(0,229,160,0.2); }
-  .api-status.empty { background: rgba(107,107,144,0.1); color: var(--text-muted); border: 1px solid var(--border); }
-
-  .steps-row { display: flex; position: relative; }
-  .steps-row::after {
-    content: ''; position: absolute; top: 16px; left: 20px; right: 20px;
-    height: 1px; background: var(--border); z-index: 0;
-  }
-  .step { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.35rem; position: relative; z-index: 1; }
-  .step-num {
-    width: 32px; height: 32px; border-radius: 50%;
-    background: var(--surface2); border: 1px solid var(--border);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.7rem; font-weight: 700; transition: all 0.3s;
-  }
-  .step.active .step-num { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 14px rgba(124,92,252,0.5); }
-  .step.done .step-num { background: var(--success); border-color: var(--success); color: #000; }
-  .step-label { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .step.active .step-label { color: var(--text); }
-  .step.done .step-label { color: var(--success); }
-
-  /* Upload zone */
-  .upload-zone {
-    border: 2px dashed var(--border); border-radius: var(--radius);
-    padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
-    transition: all 0.3s; background: var(--surface); position: relative; overflow: hidden;
-  }
-  .upload-zone:active { border-color: var(--accent); }
-  .upload-icon { font-size: 2.5rem; margin-bottom: 0.75rem; display: block; animation: float 3s ease-in-out infinite; }
-  @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
-  .upload-text { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.4rem; }
-  .upload-sub { font-size: 0.68rem; color: var(--text-muted); line-height: 1.6; }
-  input[type="file"] { display: none; }
-
-  .file-bar {
-    display: none; background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 0.85rem 1rem;
-    align-items: center; gap: 0.75rem;
-  }
-  .file-bar.visible { display: flex; }
-  .file-icon { font-size: 1.25rem; }
-  .file-info { flex: 1; min-width: 0; }
-  .file-name { font-size: 0.78rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .file-size { font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem; }
-
-  .options-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
-  .option-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0.85rem 1rem; }
-  .option-label { font-size: 0.62rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
-  select {
-    width: 100%; background: var(--surface2); border: 1px solid var(--border);
-    border-radius: 8px; padding: 0.5rem 0.7rem;
-    color: var(--text); font-family: 'Space Mono', monospace; font-size: 0.72rem;
-    outline: none; cursor: pointer; appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b90' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 0.6rem center;
-  }
-
-  .btn-primary {
-    width: 100%; padding: 0.9rem;
-    background: linear-gradient(135deg, var(--accent), #5b3fd4);
-    border: none; border-radius: var(--radius); color: white;
-    font-family: 'Space Mono', monospace; font-size: 0.85rem; font-weight: 700;
-    cursor: pointer; transition: all 0.2s; letter-spacing: 0.03em;
-  }
-  .btn-primary:active { transform: scale(0.98); }
-  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
-
-  .progress-section { display: none; flex-direction: column; gap: 0.75rem; }
-  .progress-section.visible { display: flex; }
-  .progress-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem 1.25rem; }
-  .progress-header { display: flex; justify-content: space-between; margin-bottom: 0.6rem; }
-  .progress-title { font-size: 0.75rem; font-weight: 700; }
-  .progress-pct { font-size: 0.7rem; color: var(--accent3); }
-  .progress-bar { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
-  .progress-fill {
-    height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent3));
-    border-radius: 2px; transition: width 0.4s; width: 0%; position: relative;
-  }
-  .progress-fill::after {
-    content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 30px;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
-    animation: shimmer 1s ease-in-out infinite;
-  }
-  @keyframes shimmer { 0%,100%{opacity:0} 50%{opacity:1} }
-  .log-area { margin-top: 0.6rem; font-size: 0.65rem; color: var(--text-muted); max-height: 72px; overflow-y: auto; line-height: 1.8; }
-  .log-line { display: block; }
-  .log-line.ok { color: var(--success); }
-  .log-line.err { color: var(--error); }
-
-  .result-section { display: none; flex-direction: column; gap: 0.75rem; }
-  .result-section.visible { display: flex; }
-  .result-header { display: flex; flex-direction: column; gap: 0.75rem; }
-  .result-title { font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
-  .badge { font-size: 0.6rem; padding: 0.2rem 0.45rem; border-radius: 20px; background: rgba(0,229,200,0.1); border: 1px solid rgba(0,229,200,0.2); color: var(--accent3); }
-  .result-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-  .tabs { display: flex; gap: 0.2rem; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 0.2rem; }
-  .tab { padding: 0.35rem 0.7rem; border-radius: 6px; font-size: 0.62rem; cursor: pointer; font-family: 'Space Mono', monospace; border: none; background: none; color: var(--text-muted); font-weight: 700; }
-  .tab.active { background: var(--accent); color: white; }
-  .btn-secondary { background: var(--surface2); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 0.45rem 0.9rem; font-family: 'Space Mono', monospace; font-size: 0.68rem; cursor: pointer; font-weight: 700; }
-  .btn-download { background: linear-gradient(135deg, var(--accent3), #00b89c); border: none; color: #000; border-radius: 8px; padding: 0.45rem 0.9rem; font-family: 'Space Mono', monospace; font-size: 0.68rem; cursor: pointer; font-weight: 700; }
-  .srt-preview {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 1rem; max-height: 280px;
-    overflow-y: auto; font-size: 0.7rem; line-height: 2;
-    white-space: pre-wrap; font-family: 'Space Mono', monospace;
-  }
-  .srt-entry-num { color: var(--accent); }
-  .srt-entry-time { color: var(--accent3); font-size: 0.62rem; }
-  .srt-entry-orig { color: var(--text-muted); }
-  .srt-entry-my { font-family: 'Noto Sans Myanmar', sans-serif; color: var(--text); font-size: 0.8rem; }
-  .error-box { display: none; background: rgba(255,77,109,0.08); border: 1px solid rgba(255,77,109,0.3); border-radius: var(--radius); padding: 0.85rem 1rem; font-size: 0.72rem; color: var(--error); line-height: 1.6; }
-  .error-box.visible { display: block; }
-  .btn-clear { background: none; border: 1px solid var(--border); color: var(--text-muted); border-radius: 6px; padding: 0.3rem 0.6rem; font-size: 0.65rem; cursor: pointer; font-family: 'Space Mono', monospace; }
-
-  footer { text-align: center; font-size: 0.58rem; color: var(--text-muted); border-top: 1px solid var(--border); padding-top: 1rem; }
-  ::-webkit-scrollbar { width: 3px; }
-  ::-webkit-scrollbar-track { background: var(--surface2); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+:root{--bg:#05050a;--sf:#0e0e18;--sf2:#16162a;--bd:#2a2a45;--ac:#7c5cfc;--ac2:#e84393;--ac3:#00e5c8;--tx:#e8e8f0;--mu:#6b6b90;--ok:#00e5a0;--wn:#ffb800;--er:#ff4d6d;--r:12px}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{min-height:100%;background:var(--bg);color:var(--tx);font-family:'Space Mono',monospace;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse 60% 40% at 20% 20%,rgba(124,92,252,.12) 0%,transparent 70%),radial-gradient(ellipse 40% 60% at 80% 80%,rgba(232,67,147,.08) 0%,transparent 70%);pointer-events:none;z-index:0}
+.grid{position:fixed;inset:0;background-image:linear-gradient(rgba(124,92,252,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(124,92,252,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.app{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:1.5rem 1.25rem 3rem;display:flex;flex-direction:column;gap:1.1rem}
+/* Header */
+.logo-row{display:flex;align-items:center;gap:.9rem}
+.logo-ic{width:44px;height:44px;background:linear-gradient(135deg,var(--ac),var(--ac2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;box-shadow:0 0 24px rgba(124,92,252,.4)}
+h1{font-size:1.4rem;font-weight:700}
+h1 span{font-family:'Noto Sans Myanmar',sans-serif;color:var(--ac3)}
+.tagline{font-size:.63rem;color:var(--mu);letter-spacing:.08em;text-transform:uppercase;padding-left:56px}
+/* Card */
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:1.1rem 1.25rem}
+/* API Key */
+.api-row{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.api-lbl{font-size:.64rem;color:var(--mu);text-transform:uppercase;letter-spacing:.1em;white-space:nowrap}
+.api-wrap{position:relative;flex:1;min-width:180px}
+.api-wrap input{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:.55rem 2rem .55rem .75rem;color:var(--tx);font-family:'Space Mono',monospace;font-size:.78rem;outline:none;transition:border-color .2s}
+.api-wrap input:focus{border-color:var(--ac)}
+.eye{position:absolute;right:.5rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--mu);cursor:pointer;font-size:.75rem}
+.api-badge{font-size:.65rem;padding:.2rem .55rem;border-radius:20px;white-space:nowrap}
+.api-badge.ok{background:rgba(0,229,160,.1);color:var(--ok);border:1px solid rgba(0,229,160,.2)}
+.api-badge.no{background:rgba(107,107,144,.1);color:var(--mu);border:1px solid var(--bd)}
+/* Steps */
+.steps{display:flex;position:relative}
+.steps::after{content:'';position:absolute;top:17px;left:22px;right:22px;height:1px;background:var(--bd);z-index:0}
+.step{flex:1;display:flex;flex-direction:column;align-items:center;gap:.35rem;position:relative;z-index:1}
+.sn{width:34px;height:34px;border-radius:50%;background:var(--sf2);border:1px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;transition:all .3s}
+.step.active .sn{background:var(--ac);border-color:var(--ac);box-shadow:0 0 14px rgba(124,92,252,.5)}
+.step.done .sn{background:var(--ok);border-color:var(--ok);color:#000}
+.sl{font-size:.56rem;color:var(--mu);text-transform:uppercase;letter-spacing:.05em}
+.step.active .sl{color:var(--tx)}.step.done .sl{color:var(--ok)}
+/* Drop zone */
+.drop{border:2px dashed var(--bd);border-radius:var(--r);padding:2.5rem 1.5rem;text-align:center;cursor:pointer;transition:all .3s;background:var(--sf);position:relative;overflow:hidden}
+.drop::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(124,92,252,.05),rgba(232,67,147,.05));opacity:0;transition:opacity .3s}
+.drop:hover,.drop.over{border-color:var(--ac);box-shadow:0 0 28px rgba(124,92,252,.15)}
+.drop:hover::before,.drop.over::before{opacity:1}
+.drop-ic{font-size:2.5rem;margin-bottom:.75rem;display:block;animation:fl 3s ease-in-out infinite}
+@keyframes fl{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+.drop-ttl{font-size:.95rem;font-weight:700;margin-bottom:.4rem}
+.drop-sub{font-size:.67rem;color:var(--mu);line-height:1.75}
+input[type=file]{display:none}
+/* File bar */
+.fbar{display:none;align-items:center;gap:.75rem}
+.fbar.on{display:flex}
+.fname{font-size:.82rem;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
+.fsz{font-size:.64rem;color:var(--mu);margin-top:.15rem}
+.btn-x{background:none;border:1px solid var(--bd);color:var(--mu);border-radius:6px;padding:.28rem .6rem;font-size:.64rem;cursor:pointer;font-family:'Space Mono',monospace;transition:all .2s}
+.btn-x:hover{border-color:var(--er);color:var(--er)}
+/* Video info */
+.vinfo{display:none;align-items:center;gap:.65rem;flex-wrap:wrap}
+.vinfo.on{display:flex}
+.vstat{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:.28rem .6rem;font-size:.63rem;color:var(--mu)}
+.vstat span{color:var(--ac3);font-weight:700}
+/* Options */
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:.85rem}
+.olbl{font-size:.62rem;color:var(--mu);text-transform:uppercase;letter-spacing:.1em;margin-bottom:.5rem}
+select{width:100%;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:.5rem .7rem;color:var(--tx);font-family:'Space Mono',monospace;font-size:.74rem;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6b90' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .7rem center;transition:border-color .2s}
+select:focus{border-color:var(--ac)}
+/* Button */
+.btn-go{width:100%;padding:.95rem;background:linear-gradient(135deg,var(--ac),#5b3fd4);border:none;border-radius:var(--r);color:#fff;font-family:'Space Mono',monospace;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .3s;letter-spacing:.03em}
+.btn-go:hover:not(:disabled){box-shadow:0 8px 28px rgba(124,92,252,.4);transform:translateY(-1px)}
+.btn-go:active:not(:disabled){transform:translateY(0)}
+.btn-go:disabled{opacity:.4;cursor:not-allowed;transform:none}
+/* Progress */
+.prog{display:none;flex-direction:column;gap:.75rem}
+.prog.on{display:flex}
+.ph{display:flex;justify-content:space-between;margin-bottom:.65rem}
+.pt{font-size:.78rem;font-weight:700}
+.pp{font-size:.72rem;color:var(--ac3)}
+.pbar{height:5px;background:var(--sf2);border-radius:3px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,var(--ac),var(--ac3));border-radius:3px;transition:width .4s;width:0%;position:relative}
+.pfill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:30px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.3));animation:sh 1s ease-in-out infinite}
+@keyframes sh{0%,100%{opacity:0}50%{opacity:1}}
+.logbox{margin-top:.65rem;font-size:.66rem;color:var(--mu);max-height:80px;overflow-y:auto;line-height:1.9}
+.logbox s{display:block}
+.logbox s.ok{color:var(--ok)}.logbox s.er{color:var(--er)}.logbox s.wn{color:var(--wn)}
+/* Result */
+.res{display:none;flex-direction:column;gap:.85rem}
+.res.on{display:flex}
+.res-top{display:flex;align-items:center;justify-content:space-between;gap:.75rem;flex-wrap:wrap}
+.res-ttl{font-size:.95rem;font-weight:700;display:flex;align-items:center;gap:.5rem}
+.badge{font-size:.6rem;padding:.18rem .45rem;border-radius:20px;background:rgba(0,229,200,.1);border:1px solid rgba(0,229,200,.2);color:var(--ac3)}
+.res-acts{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
+.tabs{display:flex;gap:.18rem;background:var(--sf);border:1px solid var(--bd);border-radius:8px;padding:.18rem}
+.tab{padding:.32rem .72rem;border-radius:6px;font-size:.62rem;cursor:pointer;font-family:'Space Mono',monospace;border:none;background:none;color:var(--mu);font-weight:700;transition:all .2s}
+.tab.active{background:var(--ac);color:#fff}
+.btn-s{background:var(--sf2);border:1px solid var(--bd);color:var(--tx);border-radius:8px;padding:.42rem .85rem;font-family:'Space Mono',monospace;font-size:.67rem;cursor:pointer;font-weight:700;transition:all .2s}
+.btn-s:hover{border-color:var(--ac);color:var(--ac)}
+.btn-dl{background:linear-gradient(135deg,var(--ac3),#00b89c);border:none;color:#000;border-radius:8px;padding:.42rem .85rem;font-family:'Space Mono',monospace;font-size:.67rem;cursor:pointer;font-weight:700;transition:all .2s}
+.btn-dl:hover{box-shadow:0 4px 14px rgba(0,229,200,.3);transform:translateY(-1px)}
+.preview{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:1.1rem;max-height:340px;overflow-y:auto;font-size:.71rem;line-height:2.1;white-space:pre-wrap;font-family:'Space Mono',monospace}
+.pn{color:var(--ac)}.pts{color:var(--ac3);font-size:.63rem}.po{color:var(--mu)}.pm{font-family:'Noto Sans Myanmar',sans-serif;color:var(--tx);font-size:.82rem}
+/* Error */
+.errbox{display:none;background:rgba(255,77,109,.08);border:1px solid rgba(255,77,109,.3);border-radius:var(--r);padding:.9rem 1.1rem;font-size:.75rem;color:var(--er);line-height:1.7}
+.errbox.on{display:block}
+::-webkit-scrollbar{width:3px}::-webkit-scrollbar-track{background:var(--sf2)}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:2px}
+footer{text-align:center;font-size:.6rem;color:var(--mu);border-top:1px solid var(--bd);padding-top:1rem;margin-top:.5rem}
+@media(max-width:480px){.opts{grid-template-columns:1fr}.steps::after{display:none}}
 </style>
 </head>
 <body>
-<div class="grid-overlay"></div>
+<div class="grid"></div>
 <div class="app">
 
-  <header>
-    <div class="logo-row">
-      <div class="logo-icon">🎬</div>
-      <h1>SRT → <span>မြန်မာ</span></h1>
-    </div>
-    <p class="tagline">Video subtitle extractor &amp; Burmese translator · Gemini AI</p>
-  </header>
+<header>
+  <div class="logo-row">
+    <div class="logo-ic">🎬</div>
+    <h1>SRT → <span>မြန်မာဘာသာ</span></h1>
+  </div>
+  <p class="tagline">Audio extraction · Gemini 1.5 Flash · Burmese translation · CapCut-safe SRT output</p>
+</header>
 
-  <div class="api-card">
-    <label>Gemini API Key</label>
-    <div class="api-row">
-      <div class="api-input-wrap">
-        <input type="password" id="apiKey" placeholder="AIza..." autocomplete="off">
-        <button class="toggle-key" id="toggleKey">👁</button>
+<div class="card">
+  <div class="api-row">
+    <span class="api-lbl">Gemini API Key</span>
+    <div class="api-wrap">
+      <input type="password" id="apiKey" placeholder="AIza…" autocomplete="off" spellcheck="false">
+      <button class="eye" id="eyeBtn">👁</button>
+    </div>
+    <span class="api-badge no" id="apiSt">not set</span>
+  </div>
+</div>
+
+<div class="steps" id="stepsRow">
+  <div class="step active"><div class="sn">1</div><div class="sl">Upload</div></div>
+  <div class="step"><div class="sn">2</div><div class="sl">Audio</div></div>
+  <div class="step"><div class="sn">3</div><div class="sl">Transcribe</div></div>
+  <div class="step"><div class="sn">4</div><div class="sl">Translate</div></div>
+  <div class="step"><div class="sn">✓</div><div class="sl">Done</div></div>
+</div>
+
+<div class="drop" id="dropZone">
+  <span class="drop-ic">🎥</span>
+  <div class="drop-ttl">Drop video or audio file here</div>
+  <div class="drop-sub">
+    MP4 · MKV · MOV · AVI · WebM · MP3 · WAV · AAC · M4A<br>
+    Audio is extracted in your browser — only audio bytes sent to Gemini<br>
+    <em style="color:var(--ac3);font-size:.62rem">Subtitles will sync to exact video length · CapCut-safe single-line output</em>
+  </div>
+  <input type="file" id="fileInput" accept="video/*,audio/*">
+</div>
+
+<div class="card fbar" id="fbar">
+  <span style="font-size:1.4rem">🎞️</span>
+  <div style="flex:1;min-width:0">
+    <div class="fname" id="fname">—</div>
+    <div class="fsz" id="fsz">—</div>
+  </div>
+  <button class="btn-x" id="clearBtn">✕ Remove</button>
+</div>
+
+<div class="card vinfo" id="vinfo">
+  <span class="vstat">Duration <span id="vdur">—</span></span>
+  <span class="vstat">Video size <span id="vsz">—</span></span>
+  <span class="vstat">Audio extracted <span id="asz">pending</span></span>
+</div>
+
+<div class="opts">
+  <div class="card">
+    <div class="olbl">Source Language</div>
+    <select id="srcLang">
+      <option value="auto">Auto Detect</option>
+      <option value="English">English</option>
+      <option value="Chinese">Chinese (Mandarin)</option>
+      <option value="Japanese">Japanese</option>
+      <option value="Korean">Korean</option>
+      <option value="Thai">Thai</option>
+      <option value="Indonesian">Indonesian</option>
+      <option value="Hindi">Hindi</option>
+      <option value="French">French</option>
+      <option value="German">German</option>
+      <option value="Spanish">Spanish</option>
+      <option value="Arabic">Arabic</option>
+    </select>
+  </div>
+  <div class="card">
+    <div class="olbl">Max chars / subtitle line</div>
+    <select id="maxCh">
+      <option value="35">35 — short phone screens</option>
+      <option value="42" selected>42 — CapCut safe ✓</option>
+      <option value="55">55 — wider screens</option>
+      <option value="9999">Unlimited</option>
+    </select>
+  </div>
+  <div class="card" style="grid-column:1/-1">
+    <div class="olbl">Gemini Model</div>
+    <select id="gModel">
+      <option value="gemini-1.5-flash" selected>gemini-1.5-flash — Free tier ✓ (recommended)</option>
+      <option value="gemini-1.5-pro">gemini-1.5-pro — Better quality, lower quota</option>
+      <option value="gemini-2.0-flash">gemini-2.0-flash — Needs billing enabled</option>
+      <option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash — Needs billing enabled</option>
+    </select>
+  </div>
+</div>
+
+<div class="errbox" id="errBox"></div>
+
+<button class="btn-go" id="goBtn" disabled>▶ &nbsp; Extract Audio &amp; Translate to Burmese</button>
+
+<div class="prog" id="prog">
+  <div class="card">
+    <div class="ph">
+      <span class="pt" id="pTitle">Initializing…</span>
+      <span class="pp" id="pPct">0%</span>
+    </div>
+    <div class="pbar"><div class="pfill" id="pFill"></div></div>
+    <div class="logbox" id="logbox"></div>
+  </div>
+</div>
+
+<div class="res" id="res">
+  <div class="res-top">
+    <div class="res-ttl">✅ Complete <span class="badge" id="entBadge">0</span></div>
+    <div class="res-acts">
+      <div class="tabs">
+        <button class="tab active" id="tabB" onclick="switchTab('b')">Bilingual</button>
+        <button class="tab" id="tabM" onclick="switchTab('m')">Myanmar SRT</button>
+        <button class="tab" id="tabO" onclick="switchTab('o')">Original SRT</button>
       </div>
-      <div class="api-status empty" id="apiStatus">not set</div>
+      <button class="btn-s" id="copyBtn">Copy</button>
+      <button class="btn-dl" id="dlBtn">⬇ Download SRT</button>
     </div>
   </div>
+  <div class="preview" id="preview"></div>
+</div>
 
-  <div class="steps-row">
-    <div class="step active" data-step="0"><div class="step-num">1</div><div class="step-label">Upload</div></div>
-    <div class="step" data-step="1"><div class="step-num">2</div><div class="step-label">Extract</div></div>
-    <div class="step" data-step="2"><div class="step-num">3</div><div class="step-label">Translate</div></div>
-    <div class="step" data-step="3"><div class="step-num">✓</div><div class="step-label">Done</div></div>
-  </div>
-
-  <div class="upload-zone" id="uploadZone">
-    <span class="upload-icon">🎥</span>
-    <div class="upload-text">Tap to select video</div>
-    <div class="upload-sub">MP4, MKV, MOV, AVI, WebM, Audio files<br>File is read locally — nothing uploaded to servers</div>
-    <input type="file" id="fileInput" accept="video/*,audio/*">
-  </div>
-
-  <div class="file-bar" id="fileBar">
-    <span class="file-icon">🎞️</span>
-    <div class="file-info">
-      <div class="file-name" id="fileName">—</div>
-      <div class="file-size" id="fileSize">—</div>
-    </div>
-    <button class="btn-clear" id="clearFile">✕</button>
-  </div>
-
-  <div class="options-row">
-    <div class="option-card">
-      <div class="option-label">Source Language</div>
-      <select id="sourceLang">
-        <option value="auto">Auto Detect</option>
-        <option value="en">English</option>
-        <option value="zh">Chinese</option>
-        <option value="ja">Japanese</option>
-        <option value="ko">Korean</option>
-        <option value="th">Thai</option>
-        <option value="id">Indonesian</option>
-        <option value="hi">Hindi</option>
-        <option value="fr">French</option>
-        <option value="de">German</option>
-        <option value="es">Spanish</option>
-      </select>
-    </div>
-    <div class="option-card">
-      <div class="option-label">Translation Style</div>
-      <select id="subtitleStyle">
-        <option value="natural">Natural</option>
-        <option value="literal">Literal</option>
-        <option value="formal">Formal</option>
-        <option value="simplified">Simplified</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="error-box" id="errorBox"></div>
-
-  <button class="btn-primary" id="processBtn" disabled>
-    ▶ &nbsp; Extract &amp; Translate to Burmese
-  </button>
-
-  <div class="progress-section" id="progressSection">
-    <div class="progress-card">
-      <div class="progress-header">
-        <span class="progress-title" id="progressTitle">Initializing…</span>
-        <span class="progress-pct" id="progressPct">0%</span>
-      </div>
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="log-area" id="logArea"></div>
-    </div>
-  </div>
-
-  <div class="result-section" id="resultSection">
-    <div class="result-header">
-      <div class="result-title">✅ Done <span class="badge" id="entryCount">0 entries</span></div>
-      <div class="result-actions">
-        <div class="tabs">
-          <button class="tab active" id="tabBilingual" onclick="switchTab('bilingual')">Bilingual</button>
-          <button class="tab" id="tabMyanmar" onclick="switchTab('myanmar')">Myanmar</button>
-          <button class="tab" id="tabOriginal" onclick="switchTab('original')">Original</button>
-        </div>
-        <button class="btn-download" id="downloadBtn">⬇ Save SRT</button>
-      </div>
-    </div>
-    <div class="srt-preview" id="srtPreview"></div>
-  </div>
-
-  <footer>မြန်မာ SRT · Gemini 2.0 Flash · Audio processed on-device</footer>
+<footer>မြန်မာ SRT Translator · Gemini 1.5 Flash · Audio decoded in browser · \r\n line endings for CapCut compatibility</footer>
 </div>
 
 <script>
-// ── Android bridge detection ───────────────────────────────────
-const isAndroid = (typeof AndroidBridge !== 'undefined') && AndroidBridge.isAndroid() === 'true';
+'use strict';
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 
-// State
-let selectedFile = null;
-let selectedUri = null;   // Android content:// URI
-let srtOriginal = '';
-let srtTranslated = '';
-let srtBilingual = '';
-let currentTab = 'bilingual';
+// ── State ─────────────────────────────────────────────────────
+let gFile=null, gDur=0, gEntries=[], gSrtOrig='', gSrtMy='', gTab='b';
 
-// ── API Key ────────────────────────────────────────────────────
-const apiKeyInput = document.getElementById('apiKey');
-const apiStatus = document.getElementById('apiStatus');
-const savedKey = localStorage.getItem('gemini_api_key') || '';
-if (savedKey) { apiKeyInput.value = savedKey; updateApiStatus(savedKey); }
+// ── API Key ───────────────────────────────────────────────────
+const $key=id('apiKey'), $st=id('apiSt');
+const saved=localStorage.getItem('gk')||'';
+if(saved){$key.value=saved;keyStatus(saved);}
+$key.addEventListener('input',()=>{const v=$key.value.trim();localStorage.setItem('gk',v);keyStatus(v);refreshBtn();});
+id('eyeBtn').onclick=()=>$key.type=$key.type==='password'?'text':'password';
+function keyStatus(k){if(k.length>10){$st.textContent='● set';$st.className='api-badge ok';}else{$st.textContent='not set';$st.className='api-badge no';}}
 
-apiKeyInput.addEventListener('input', () => {
-  const v = apiKeyInput.value.trim();
-  localStorage.setItem('gemini_api_key', v);
-  updateApiStatus(v);
-  updateProcessBtn();
-});
-document.getElementById('toggleKey').addEventListener('click', () => {
-  apiKeyInput.type = apiKeyInput.type === 'password' ? 'text' : 'password';
-});
+// ── Upload ────────────────────────────────────────────────────
+const drop=id('dropZone'), finput=id('fileInput');
+drop.onclick=()=>finput.click();
+finput.onchange=e=>e.target.files[0]&&pickFile(e.target.files[0]);
+drop.addEventListener('dragover',e=>{e.preventDefault();drop.classList.add('over');});
+drop.addEventListener('dragleave',()=>drop.classList.remove('over'));
+drop.addEventListener('drop',e=>{e.preventDefault();drop.classList.remove('over');e.dataTransfer.files[0]&&pickFile(e.dataTransfer.files[0]);});
 
-function updateApiStatus(k) {
-  if (!k) { apiStatus.textContent = 'not set'; apiStatus.className = 'api-status empty'; }
-  else if (k.length > 10) { apiStatus.textContent = '● set'; apiStatus.className = 'api-status valid'; }
-  else { apiStatus.textContent = 'too short?'; apiStatus.className = 'api-status empty'; }
+function pickFile(f){
+  if(!f.type.startsWith('video/')&&!f.type.startsWith('audio/')){showErr('Please select a video or audio file.');return;}
+  gFile=f; hideErr();
+  drop.style.display='none';
+  on('fbar'); id('fname').textContent=f.name; id('fsz').textContent=fmtB(f.size);
+  // Get duration via hidden media element
+  const url=URL.createObjectURL(f);
+  const el=f.type.startsWith('audio/')?new Audio():document.createElement('video');
+  el.preload='metadata';
+  el.onloadedmetadata=()=>{
+    gDur=isFinite(el.duration)&&el.duration>0?el.duration:0;
+    URL.revokeObjectURL(url); el.src='';
+    if(gDur){on('vinfo');id('vdur').textContent=fmtT(gDur);id('vsz').textContent=fmtB(f.size);}
+  };
+  el.onerror=()=>{URL.revokeObjectURL(url);};
+  el.src=url;
+  refreshBtn();
 }
 
-// ── File selection ─────────────────────────────────────────────
-const uploadZone = document.getElementById('uploadZone');
-const fileInput = document.getElementById('fileInput');
-
-uploadZone.addEventListener('click', () => fileInput.click());
-fileInput.addEventListener('change', e => {
-  const f = e.target.files[0];
-  if (f) handleFileObject(f);
-});
-
-// Android: accept external file URI injected by MainActivity
-window.injectExternalFile = function(uriString) {
-  if (!isAndroid) return;
-  selectedUri = uriString;
-  selectedFile = null;
-  const name = AndroidBridge.getFileName(uriString);
-  const size = AndroidBridge.getFileSize(uriString);
-  showFileBar(name, size);
-  updateProcessBtn();
+id('clearBtn').onclick=()=>{
+  gFile=null;gDur=0;gEntries=[];finput.value='';
+  drop.style.display='';
+  off('fbar');off('vinfo');off('res');off('prog');
+  setStep(0);hideErr();refreshBtn();
 };
 
-function handleFileObject(file) {
-  selectedFile = file;
-  selectedUri = null;
-  showFileBar(file.name, file.size);
-  updateProcessBtn();
-}
+// ── Main pipeline ─────────────────────────────────────────────
+id('goBtn').onclick=run;
 
-function showFileBar(name, size) {
-  hideError();
-  document.getElementById('uploadZone').style.display = 'none';
-  document.getElementById('fileBar').classList.add('visible');
-  document.getElementById('fileName').textContent = name;
-  document.getElementById('fileSize').textContent = formatBytes(Number(size));
-}
+async function run(){
+  const key=$key.value.trim();
+  if(!key||!gFile)return;
+  hideErr();btnDis(true);
+  id('logbox').innerHTML='';
+  on('prog');off('res');
+  setStep(1);setP(2,'Reading file…');
 
-document.getElementById('clearFile').addEventListener('click', () => {
-  selectedFile = null; selectedUri = null;
-  fileInput.value = '';
-  document.getElementById('uploadZone').style.display = '';
-  document.getElementById('fileBar').classList.remove('visible');
-  document.getElementById('resultSection').classList.remove('visible');
-  document.getElementById('progressSection').classList.remove('visible');
-  setStep(0);
-  updateProcessBtn();
-});
-
-function formatBytes(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
-  return (b/1048576).toFixed(1) + ' MB';
-}
-
-function updateProcessBtn() {
-  const k = apiKeyInput.value.trim();
-  const hasFile = selectedFile || selectedUri;
-  document.getElementById('processBtn').disabled = !hasFile || k.length < 10;
-}
-updateProcessBtn();
-
-// ── Steps ──────────────────────────────────────────────────────
-function setStep(n) {
-  document.querySelectorAll('.step').forEach((el, i) => {
-    el.classList.remove('active','done');
-    if (i < n) el.classList.add('done');
-    if (i === n) el.classList.add('active');
-  });
-}
-
-// ── Log ────────────────────────────────────────────────────────
-function log(msg, type = '') {
-  const la = document.getElementById('logArea');
-  const s = document.createElement('span');
-  s.className = 'log-line' + (type ? ' '+type : '');
-  s.textContent = '› ' + msg;
-  la.appendChild(s);
-  la.appendChild(document.createElement('br'));
-  la.scrollTop = la.scrollHeight;
-}
-function setProgress(pct, title) {
-  document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressPct').textContent = pct + '%';
-  if (title) document.getElementById('progressTitle').textContent = title;
-}
-function showError(msg) { const b = document.getElementById('errorBox'); b.textContent = '⚠ '+msg; b.classList.add('visible'); }
-function hideError() { document.getElementById('errorBox').classList.remove('visible'); }
-
-// ── Pipeline ───────────────────────────────────────────────────
-document.getElementById('processBtn').addEventListener('click', runPipeline);
-
-async function runPipeline() {
-  hideError();
-  const key = apiKeyInput.value.trim();
-  if (!key || (!selectedFile && !selectedUri)) return;
-
-  document.getElementById('processBtn').disabled = true;
-  document.getElementById('logArea').innerHTML = '';
-  document.getElementById('progressSection').classList.add('visible');
-  document.getElementById('resultSection').classList.remove('visible');
-  setStep(1);
-  setProgress(2, 'Reading file…');
-
-  try {
-    log('Reading media file…');
-    let base64Data, mimeType, fileName;
-
-    if (isAndroid && selectedUri) {
-      // Use native bridge to read content:// URI
-      log('Reading via Android bridge…');
-      base64Data = await readFileViaBridge(selectedUri);
-      mimeType = AndroidBridge.getMimeType(selectedUri);
-      fileName = AndroidBridge.getFileName(selectedUri);
-    } else {
-      // Web FileReader
-      base64Data = await fileToBase64(selectedFile);
-      mimeType = selectedFile.type || 'video/mp4';
-      fileName = selectedFile.name;
-    }
-
-    if (!base64Data) throw new Error('Failed to read file. Try a smaller file or different format.');
-    log('File read OK (' + formatBytes(base64Data.length * 0.75) + ')', 'ok');
-
-    setProgress(20, 'Transcribing with Gemini…');
-    setStep(1);
-    const sourceLang = document.getElementById('sourceLang').value;
-    log('Transcribing audio…');
-    const rawTranscript = await transcribeWithGemini(key, base64Data, mimeType, sourceLang);
-    log('Transcription done', 'ok');
-
-    setProgress(55, 'Building SRT…');
-    const srtEntries = parseTranscriptToSRT(rawTranscript);
-    if (srtEntries.length === 0) throw new Error('No subtitles found. Ensure the video has audible speech.');
-    srtOriginal = entriesToSRT(srtEntries, false);
-    log('SRT: ' + srtEntries.length + ' entries', 'ok');
-
-    setProgress(65, 'Translating to Burmese…');
+  try{
+    // STEP 1 — Extract audio
+    lg('Extracting audio from video…');
     setStep(2);
-    const style = document.getElementById('subtitleStyle').value;
-    const translated = await translateSRT(key, srtEntries, style);
-    log('Translation complete 🎉', 'ok');
+    const{b64,mime,dur}=await extractAudio(gFile);
+    if(dur&&dur>0&&!gDur)gDur=dur;
+    const audioBytes=Math.round(b64.length*.75);
+    lg(`Audio ready: ${fmtB(audioBytes)}, duration ~${fmtT(gDur)}`,'ok');
+    id('asz').textContent=fmtB(audioBytes);
+    setP(28,'Transcribing with Gemini 1.5 Flash…');
 
-    srtTranslated = entriesToSRT(translated, true);
-    srtBilingual = entriesToSRTBilingual(translated);
-    setProgress(100, 'Complete!');
+    // STEP 2 — Transcribe
+    lg('Sending to Gemini 1.5 Flash for transcription…');
     setStep(3);
+    const lang=id('srcLang').value;
+    const rawLines=await transcribe(key,b64,mime,lang,gDur);
+    lg(`Got ${rawLines.length} subtitle segments`,'ok');
+    setP(55,'Parsing & timing SRT…');
 
-    showResult(translated, fileName);
+    // STEP 3 — Parse & time-scale
+    let entries=parseLines(rawLines,gDur);
+    if(entries.length===0)throw new Error('No subtitle segments found. Ensure the file has audible speech and the API key is valid.');
+    entries=scaleToVideoDuration(entries,gDur);
+    lg(`SRT: ${entries.length} entries, last end=${fmtT(entries.at(-1)?.endSec||0)}`,'ok');
+    setP(64,'Translating to မြန်မာဘာသာ…');
 
-  } catch(err) {
-    showError(err.message || String(err));
-    log('Error: ' + (err.message || err), 'err');
-    setProgress(0, 'Failed');
-    document.getElementById('processBtn').disabled = false;
-    setStep(0);
+    // STEP 4 — Translate
+    setStep(4);
+    const maxCh=parseInt(id('maxCh').value);
+    entries=await translateAll(key,entries,maxCh);
+    lg('Translation complete 🎉','ok');
+    setP(98,'Building output files…');
+
+    // Build SRT strings
+    gEntries=entries;
+    gSrtOrig=buildSRT(entries,'orig');
+    gSrtMy  =buildSRT(entries,'my');
+
+    setP(100,'Done!');setStep(5);
+    showResult();
+
+  }catch(e){
+    showErr(e.message||String(e));
+    lg('Error: '+(e.message||e),'er');
+    setP(0,'Failed');setStep(0);btnDis(false);
   }
 }
 
-// ── File reading ───────────────────────────────────────────────
-function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(',')[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
-}
-
-function readFileViaBridge(uri) {
-  return new Promise((resolve) => {
-    // AndroidBridge.readFileAsBase64 is synchronous but may block UI
-    // Run in a small timeout to keep UI responsive
-    setTimeout(() => {
-      const b64 = AndroidBridge.readFileAsBase64(uri);
-      resolve(b64);
-    }, 50);
-  });
-}
-
-// ── Gemini transcription ───────────────────────────────────────
-async function transcribeWithGemini(apiKey, base64Data, mimeType, sourceLang) {
-  const langHint = sourceLang === 'auto' ? 'Detect the language automatically.' : `Audio language: ${sourceLang}.`;
-  const prompt = `${langHint}
-Transcribe ALL speech from this video/audio. For each subtitle segment output EXACTLY this format:
-[HH:MM:SS,mmm --> HH:MM:SS,mmm] Text here.
-
-Rules: 1-2 sentences per segment, ~5-10s each. Estimate timing if unsure (~2.5 words/sec).
-Output ONLY the timestamped lines — nothing else.`;
-
-  let gMime = mimeType || 'video/mp4';
-  if (gMime === 'video/quicktime') gMime = 'video/mp4';
-  if (gMime === 'video/x-matroska') gMime = 'video/mp4';
-
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { inlineData: { mimeType: gMime, data: base64Data } },
-            { text: prompt }
-          ]
-        }],
-        generationConfig: { maxOutputTokens: 8192 }
-      })
+// ── Audio extraction via Web Audio API ───────────────────────
+async function extractAudio(f){
+  // Audio files — pass directly
+  if(f.type.startsWith('audio/')){
+    const b64=await readB64(f);
+    return{b64,mime:f.type||'audio/mpeg',dur:gDur};
+  }
+  // Video — extract audio track
+  lg('Decoding audio track with Web Audio API…');
+  try{
+    const arrBuf=await f.arrayBuffer();
+    const Ctx=window.AudioContext||window.webkitAudioContext;
+    const ctx=new Ctx({sampleRate:16000}); // 16 kHz mono = best for Gemini speech
+    let decoded;
+    try{
+      decoded=await ctx.decodeAudioData(arrBuf.slice(0)); // slice to avoid detached buffer issue
+    }catch(decErr){
+      lg('Web Audio decode failed (try MP4/WebM), sending raw file…','wn');
+      await ctx.close();
+      const b64=await readB64(f);
+      return{b64,mime:f.type||'video/mp4',dur:gDur};
     }
-  );
-  if (!resp.ok) {
-    const err = await resp.json().catch(() => ({}));
-    throw new Error('Gemini error: ' + (err.error?.message || resp.status + ' ' + resp.statusText));
-  }
-  const data = await resp.json();
-  const text = data.candidates?.[0]?.content?.parts?.map(p => p.text||'').join('') || '';
-  if (!text.trim()) throw new Error('Empty transcription. Check API key and that video has speech.');
-  return text;
-}
-
-// ── SRT parsing ────────────────────────────────────────────────
-function parseTranscriptToSRT(raw) {
-  const lines = raw.split('\n').map(l=>l.trim()).filter(Boolean);
-  const entries = [];
-  const re = /\[(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})\]\s*(.+)/;
-  for (const line of lines) {
-    const m = line.match(re);
-    if (m) entries.push({ index: entries.length+1, start: m[1].replace('.',','), end: m[2].replace('.',','), text: m[3].trim(), burmese: '' });
-  }
-  if (entries.length === 0) {
-    const sents = raw.split(/(?<=[.!?])\s+/).filter(s=>s.trim().length>3);
-    let t=0;
-    for (const s of sents) {
-      const dur = Math.max(2, s.split(' ').length/2.5);
-      entries.push({ index: entries.length+1, start: secsToSRT(t), end: secsToSRT(t+dur), text: s.trim(), burmese: '' });
-      t += dur+0.3;
+    const dur=decoded.duration;
+    const sr=decoded.sampleRate;
+    // Mix to mono
+    const mono=new Float32Array(decoded.length);
+    for(let ch=0;ch<decoded.numberOfChannels;ch++){
+      const d=decoded.getChannelData(ch);
+      for(let i=0;i<mono.length;i++) mono[i]+=d[i];
     }
+    if(decoded.numberOfChannels>1) for(let i=0;i<mono.length;i++) mono[i]/=decoded.numberOfChannels;
+    await ctx.close();
+    // Encode to 16-bit WAV
+    const wav=encodeWAV(mono,sr);
+    const b64=ab2b64(wav);
+    lg(`WAV: ${sr}Hz mono, ${fmtB(wav.byteLength)}`,'ok');
+    return{b64,mime:'audio/wav',dur};
+  }catch(e){
+    lg('Audio extraction failed, sending full video…','wn');
+    const b64=await readB64(f);
+    return{b64,mime:f.type||'video/mp4',dur:gDur};
   }
-  return entries;
 }
 
-function secsToSRT(s) {
-  const h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=Math.floor(s%60), ms=Math.floor((s%1)*1000);
-  return `${pad(h)}:${pad(m)}:${pad(sec)},${pad(ms,3)}`;
-}
-function pad(n,l=2){ return String(n).padStart(l,'0'); }
-
-// ── Translation ────────────────────────────────────────────────
-async function translateSRT(apiKey, entries, style) {
-  const styleMap = {natural:'natural, conversational Burmese',literal:'literal word-for-word',formal:'formal literary Burmese',simplified:'simple easy Burmese'};
-  const styleGuide = styleMap[style] || 'natural Burmese';
-  const results = [];
-  const chunkSize = 40;
-  for (let i=0; i<entries.length; i+=chunkSize) {
-    const chunk = entries.slice(i, i+chunkSize);
-    setProgress(65 + Math.round((i/entries.length)*28), `Translating ${i+1}–${Math.min(i+chunkSize,entries.length)}…`);
-    log(`Batch ${Math.floor(i/chunkSize)+1}/${Math.ceil(entries.length/chunkSize)}…`);
-    const translated = await translateChunk(apiKey, chunk, styleGuide);
-    results.push(...translated);
+function encodeWAV(samples,sr){
+  const buf=new ArrayBuffer(44+samples.length*2);
+  const v=new DataView(buf);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i));};
+  ws(0,'RIFF');v.setUint32(4,36+samples.length*2,true);
+  ws(8,'WAVE');ws(12,'fmt ');v.setUint32(16,16,true);
+  v.setUint16(20,1,true);v.setUint16(22,1,true);
+  v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);
+  v.setUint16(32,2,true);v.setUint16(34,16,true);
+  ws(36,'data');v.setUint32(40,samples.length*2,true);
+  for(let i=0;i<samples.length;i++){
+    const s=Math.max(-1,Math.min(1,samples[i]));
+    v.setInt16(44+i*2,s<0?s*0x8000:s*0x7FFF,true);
   }
-  return results;
+  return buf;
 }
+function readB64(f){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result.split(',')[1]);r.onerror=rej;r.readAsDataURL(f);});}
+function ab2b64(buf){let s='';const b=new Uint8Array(buf);const ch=8192;for(let i=0;i<b.length;i+=ch)s+=String.fromCharCode(...b.subarray(i,i+ch));return btoa(s);}
 
-async function translateChunk(apiKey, chunk, styleGuide) {
-  const inp = chunk.map(e=>({id:e.index,text:e.text}));
-  const prompt = `Translate to Burmese (မြန်မာဘာသာ). Style: ${styleGuide}.
-Return ONLY a JSON array with fields "id" and "burmese". No markdown, no extra text.
-Input: ${JSON.stringify(inp)}`;
+// ── Gemini transcription ──────────────────────────────────────
+async function transcribe(key,b64,mime,lang,totalSec){
+  const langHint=lang==='auto'?'Detect the spoken language automatically.':`The spoken language is ${lang}.`;
+  const durHint=totalSec>0
+    ?`The audio is EXACTLY ${totalSec.toFixed(3)} seconds long (${fmtT(totalSec)}). The very last subtitle line MUST end at or before ${sec2ts(totalSec)}.`
+    :'Estimate timing based on speech pace (~2.5 words per second).';
 
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { maxOutputTokens: 4096, temperature: 0.3 }
-      })
-    }
-  );
-  if (!resp.ok) {
-    const err = await resp.json().catch(()=>({}));
-    throw new Error('Translation error: ' + (err.error?.message || resp.status));
-  }
-  const data = await resp.json();
-  let raw = data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
-  raw = raw.replace(/```json|```/g,'').trim();
-  let parsed;
-  try { parsed = JSON.parse(raw); }
-  catch { const m=raw.match(/\[[\s\S]+\]/); if(m) parsed=JSON.parse(m[0]); else throw new Error('Could not parse translation. Try again.'); }
-  const map = {};
-  for (const t of parsed) map[t.id] = t.burmese || '';
-  return chunk.map(e=>({...e, burmese: map[e.index]||e.text}));
-}
+  const prompt=`You are a professional subtitle transcriber. ${langHint}
 
-// ── SRT output ─────────────────────────────────────────────────
-function entriesToSRT(entries, burmese) {
-  return entries.map(e=>`${e.index}\n${e.start} --> ${e.end}\n${burmese?e.burmese:e.text}\n`).join('\n');
-}
-function entriesToSRTBilingual(entries) {
-  return entries.map(e=>`${e.index}\n${e.start} --> ${e.end}\n${e.text}\n${e.burmese}\n`).join('\n');
-}
+Transcribe ALL speech from this audio into subtitle segments.
+${durHint}
 
-// ── Result display ─────────────────────────────────────────────
-function showResult(entries, fileName) {
-  document.getElementById('entryCount').textContent = entries.length + ' entries';
-  document.getElementById('resultSection').classList.add('visible');
-  document.getElementById('processBtn').disabled = false;
-  window._resultFileName = (fileName || 'subtitle').replace(/\.[^.]+$/,'');
-  switchTab('bilingual');
-}
+OUTPUT: Only lines in this exact format — nothing else before or after:
+[HH:MM:SS,mmm --> HH:MM:SS,mmm] Text of subtitle here.
 
-function switchTab(tab) {
-  currentTab = tab;
-  ['bilingual','myanmar','original'].forEach(t => {
-    document.getElementById('tab'+t[0].toUpperCase()+t.slice(1)).classList.toggle('active', t===tab);
+RULES:
+1. Each segment covers 1 complete thought or sentence — never cut a sentence mid-way.
+2. Max segment duration: 6 seconds. Split longer speech into shorter natural phrases.
+3. Timestamps must be accurate and sequential — no overlaps.
+4. Keep text per segment short: aim for under 60 characters of the source language.
+5. Cover the ENTIRE audio from 00:00:00,000 to the end — do not stop early.
+6. Output ONLY the bracketed timestamp lines — no headers, no notes, no explanations.`;
+
+  // Normalize MIME type for Gemini 1.5
+  let gMime=mime;
+  if(gMime==='audio/x-wav'||gMime==='audio/wave')gMime='audio/wav';
+  else if(gMime==='audio/x-m4a')gMime='audio/mp4';
+  else if(gMime==='video/quicktime')gMime='audio/mp4';
+  else if(gMime==='video/x-matroska')gMime='audio/mp4';
+  // Gemini 1.5 Flash supported audio: wav, mp3, aiff, aac, ogg, flac
+  // If still video mime, use audio/mp4
+  if(gMime.startsWith('video/'))gMime='audio/mp4';
+
+  const model=id('gModel').value;
+  const data=await gemini(key,model,{
+    contents:[{parts:[
+      {inlineData:{mimeType:gMime,data:b64}},
+      {text:prompt}
+    ]}],
+    generationConfig:{maxOutputTokens:8192,temperature:0.1,topP:0.8}
   });
+
+  const text=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+  if(!text.trim())throw new Error('Gemini returned empty response. Check your API key and that the audio has speech.');
+
+  const lines=text.split('\n').map(l=>l.trim()).filter(l=>/^\[/.test(l));
+  if(lines.length===0)throw new Error('Gemini did not return subtitle lines. Try again or check the audio file.');
+  return lines;
+}
+
+// ── Parse lines → entry objects ───────────────────────────────
+function parseLines(lines,totalSec){
+  const re=/^\[(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})\]\s*(.+)$/;
+  const entries=[];
+  for(const line of lines){
+    const m=line.match(re);
+    if(!m)continue;
+    const startSec=ts2sec(m[1]);
+    let endSec=ts2sec(m[2]);
+    const text=m[3].trim().replace(/\s+/g,' ');
+    if(endSec<=startSec||!text)continue;
+    // Clamp to video duration
+    if(totalSec>0)endSec=Math.min(endSec,totalSec);
+    entries.push({startSec,endSec,text,burmese:''});
+  }
+  // Remove exact duplicates
+  return entries.filter((e,i)=>i===0||!(e.startSec===entries[i-1].startSec&&e.text===entries[i-1].text));
+}
+
+// ── Scale timing to match video duration exactly ──────────────
+function scaleToVideoDuration(entries,totalSec){
+  if(!totalSec||totalSec<=0||entries.length===0)return entries;
+  const lastEnd=entries.at(-1).endSec;
+  if(!lastEnd||lastEnd<=0)return entries;
+
+  // If already within 3 seconds of video end: just clamp last entry
+  if(Math.abs(lastEnd-totalSec)<=3){
+    entries.at(-1).endSec=Math.min(entries.at(-1).endSec,totalSec);
+    return entries;
+  }
+
+  // Scale proportionally so content fills video
+  const scale=totalSec/lastEnd;
+  return entries.map(e=>({
+    ...e,
+    startSec:Math.min(+(e.startSec*scale).toFixed(3),totalSec-0.1),
+    endSec:  Math.min(+(e.endSec*scale).toFixed(3),totalSec),
+  }));
+}
+
+// ── Translation in batches ────────────────────────────────────
+async function translateAll(key,entries,maxCh){
+  const CHUNK=30;
+  const out=[];
+  for(let i=0;i<entries.length;i+=CHUNK){
+    const chunk=entries.slice(i,i+CHUNK);
+    const pct=64+Math.round((i/entries.length)*32);
+    setP(pct,`Translating ${i+1}–${Math.min(i+CHUNK,entries.length)} / ${entries.length}…`);
+    lg(`Batch ${Math.floor(i/CHUNK)+1}/${Math.ceil(entries.length/CHUNK)}`);
+    const res=await translateBatch(key,chunk,maxCh);
+    out.push(...res);
+  }
+  return out;
+}
+
+async function translateBatch(key,chunk,maxCh){
+  const inp=chunk.map((e,i)=>({id:i,text:e.text}));
+  const prompt=`Translate each subtitle to natural Burmese (မြန်မာဘာသာ).
+
+RULES — follow exactly:
+1. Max ${maxCh} characters per translated line.
+2. If a translation exceeds ${maxCh} chars, shorten it — keep the core meaning.
+3. NO line breaks (\\n or \\r) inside any string — single line per entry only.
+4. Output exactly ${chunk.length} items in the same order.
+5. Natural spoken Burmese — not overly formal or academic.
+6. Return ONLY raw JSON array. No markdown fences. No extra text.
+
+Input JSON:
+${JSON.stringify(inp)}
+
+Required output format:
+[{"id":0,"burmese":"..."},{"id":1,"burmese":"..."}]`;
+
+  const model=id('gModel').value;
+  const data=await gemini(key,model,{
+    contents:[{parts:[{text:prompt}]}],
+    generationConfig:{maxOutputTokens:4096,temperature:0.2}
+  });
+  let raw=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+  raw=raw.replace(/```json|```/g,'').trim();
+
+  let parsed=null;
+  try{parsed=JSON.parse(raw);}
+  catch{const m=raw.match(/\[[\s\S]+\]/);if(m)try{parsed=JSON.parse(m[0]);}catch{}}
+
+  if(!parsed||!Array.isArray(parsed)){
+    lg(`Batch parse failed, using originals for this batch`,'wn');
+    return chunk.map(e=>({...e,burmese:e.text}));
+  }
+  const map={};
+  for(const t of parsed) map[t.id]=cleanLine(t.burmese||'',maxCh);
+  return chunk.map((e,i)=>({...e,burmese:map[i]||e.text}));
+}
+
+// ── SRT builder — CapCut safe ─────────────────────────────────
+// Rules for CapCut compatibility:
+//  1. \r\n line endings (Windows style)
+//  2. NO embedded newlines in subtitle text
+//  3. Blank line (\r\n) between blocks
+//  4. BOM (\uFEFF) prepended on download for UTF-8 detection
+function buildSRT(entries,mode){
+  return entries.map((e,i)=>{
+    const idx=i+1;
+    const ts=`${sec2ts(e.startSec)} --> ${sec2ts(e.endSec)}`;
+    const txt=cleanLine(mode==='orig'?e.text:e.burmese,9999);
+    return `${idx}\r\n${ts}\r\n${txt}\r\n`;
+  }).join('\r\n');
+}
+
+function cleanLine(s,maxCh){
+  // Remove ALL newlines — CapCut treats \n inside a block as a second subtitle line
+  let t=(s||'').replace(/[\r\n\u2028\u2029]+/g,' ').replace(/\s+/g,' ').trim();
+  if(maxCh<9999&&t.length>maxCh){
+    const cut=t.lastIndexOf(' ',maxCh);
+    t=cut>10?t.slice(0,cut)+'…':t.slice(0,maxCh)+'…';
+  }
+  return t;
+}
+
+// ── Gemini API call ───────────────────────────────────────────
+async function gemini(key,model,body){
+  const url=`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+  const r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  if(!r.ok){
+    const e=await r.json().catch(()=>({}));
+    const msg=e.error?.message||`HTTP ${r.status} ${r.statusText}`;
+    throw new Error(`Gemini API: ${msg}`);
+  }
+  return r.json();
+}
+
+// ── Result display ────────────────────────────────────────────
+function showResult(){
+  id('entBadge').textContent=gEntries.length+' entries';
+  on('res');btnDis(false);
+  window._fname=(gFile?.name||'subtitle').replace(/\.[^.]+$/,'');
+  switchTab('b');
+}
+
+function switchTab(t){
+  gTab=t;
+  ['b','m','o'].forEach(x=>id('tab'+x.toUpperCase()).classList.toggle('active',x===t));
   renderPreview();
 }
-window.switchTab = switchTab;
+window.switchTab=switchTab;
 
-function renderPreview() {
-  const preview = document.getElementById('srtPreview');
-  if (currentTab === 'original') { preview.textContent = srtOriginal; return; }
-  if (currentTab === 'myanmar') { preview.textContent = srtTranslated; return; }
-  preview.innerHTML = srtBilingual.split('\n\n').filter(b=>b.trim()).map(block=>{
-    const lines = block.split('\n');
-    if (lines.length < 3) return `<span class="srt-entry-orig">${block}</span>`;
-    const [num,time,...rest] = lines;
-    return `<span class="srt-entry-num">${num}</span>\n<span class="srt-entry-time">${time}</span>\n<span class="srt-entry-orig">${rest[0]||''}</span>\n<span class="srt-entry-my">${rest[1]||''}</span>\n`;
-  }).join('\n');
+function renderPreview(){
+  const el=id('preview');
+  if(gTab==='o'){el.textContent=gSrtOrig;return;}
+  if(gTab==='m'){el.textContent=gSrtMy;return;}
+  // Bilingual visual preview
+  el.innerHTML=gEntries.map((e,i)=>
+    `<span class="pn">${i+1}</span>\n<span class="pts">${sec2ts(e.startSec)} --> ${sec2ts(e.endSec)}</span>\n<span class="po">${esc(e.text)}</span>\n<span class="pm">${esc(e.burmese)}</span>\n`
+  ).join('\n');
 }
 
-// ── Save SRT ───────────────────────────────────────────────────
-document.getElementById('downloadBtn').addEventListener('click', saveSRT);
+// ── Download ──────────────────────────────────────────────────
+id('dlBtn').onclick=()=>{
+  const content=gTab==='o'?gSrtOrig:gSrtMy;
+  const suffix=gTab==='o'?'_original':'_myanmar';
+  dlFile('\uFEFF'+content,(window._fname||'subtitle')+suffix+'.srt','text/plain;charset=utf-8');
+};
 
-function saveSRT() {
-  const content = currentTab==='original' ? srtOriginal : currentTab==='myanmar' ? srtTranslated : srtBilingual;
-  const suffix = currentTab==='original'?'_original':currentTab==='myanmar'?'_myanmar':'_bilingual';
-  const name = (window._resultFileName||'subtitle') + suffix + '.srt';
+id('copyBtn').onclick=async()=>{
+  const c=gTab==='o'?gSrtOrig:gSrtMy;
+  await navigator.clipboard.writeText(c).catch(()=>{});
+  const b=id('copyBtn');b.textContent='Copied!';
+  setTimeout(()=>b.textContent='Copy',2000);
+};
 
-  if (isAndroid) {
-    // Use native Android Save dialog
-    AndroidBridge.saveSRT(content, name);
-  } else {
-    // Web download
-    const blob = new Blob(['\ufeff'+content], {type:'text/srt;charset=utf-8'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = name; a.click();
-    URL.revokeObjectURL(url);
-  }
+function dlFile(content,name,mime){
+  const blob=new Blob([content],{type:mime});
+  const url=URL.createObjectURL(blob);
+  const a=Object.assign(document.createElement('a'),{href:url,download:name});
+  document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1000);
 }
 
-// Init
-updateApiStatus(savedKey);
+// ── Helpers ───────────────────────────────────────────────────
+function ts2sec(ts){const[h,m,s]=ts.replace(',','.').split(':').map(Number);return h*3600+m*60+s;}
+function sec2ts(s){s=Math.max(0,+s||0);const h=Math.floor(s/3600),m=Math.floor((s%3600)/60),sec=Math.floor(s%60),ms=Math.round((s%1)*1000);return`${p(h)}:${p(m)}:${p(sec)},${p(ms,3)}`;}
+function p(n,l=2){return String(Math.floor(Math.max(0,n))).padStart(l,'0');}
+function fmtB(b){b=+b||0;if(b<1024)return b+'B';if(b<1048576)return(b/1024).toFixed(1)+'KB';return(b/1048576).toFixed(1)+'MB';}
+function fmtT(s){s=+s||0;const m=Math.floor(s/60);return`${m}:${p(Math.floor(s%60))}`;}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;');}
+function setP(pct,title){id('pFill').style.width=pct+'%';id('pPct').textContent=pct+'%';if(title)id('pTitle').textContent=title;}
+function setStep(n){document.querySelectorAll('.step').forEach((el,i)=>{el.classList.remove('active','done');if(i<n)el.classList.add('done');if(i===n)el.classList.add('active');});}
+function lg(msg,t=''){const la=id('logbox');const s=document.createElement('s');s.className=t;s.textContent='› '+msg;la.appendChild(s);la.scrollTop=la.scrollHeight;}
+function showErr(m){const b=id('errBox');b.textContent='⚠ '+m;b.classList.add('on');}
+function hideErr(){id('errBox').classList.remove('on');}
+function on(i){id(i).classList.add('on');}
+function off(i){id(i).classList.remove('on');}
+function refreshBtn(){id('goBtn').disabled=!gFile||$key.value.trim().length<10;}
+function btnDis(d){id('goBtn').disabled=d;}
+function id(i){return document.getElementById(i);}
+keyStatus(saved);
 </script>
 </body>
 </html>
