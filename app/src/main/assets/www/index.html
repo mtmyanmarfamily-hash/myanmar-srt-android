@@ -501,15 +501,19 @@ function scaleToVideoDuration(entries,totalSec){
   }));
 }
 
-// ── Translation in batches ────────────────────────────────────
+// ── Translation — plain SRT text only, zero binary uploads ─────
+// Transcription gave us English SRT text. We now send ONLY that
+// plain text to Gemini for translation. No audio, no video, no
+// base64 — just text in, Burmese text out. Fast and reliable.
+
 async function translateAll(key,entries,maxCh){
-  const CHUNK=30;
+  const CHUNK=60;
   const out=[];
   for(let i=0;i<entries.length;i+=CHUNK){
     const chunk=entries.slice(i,i+CHUNK);
     const pct=64+Math.round((i/entries.length)*32);
-    setP(pct,`Translating ${i+1}–${Math.min(i+CHUNK,entries.length)} / ${entries.length}…`);
-    lg(`Batch ${Math.floor(i/CHUNK)+1}/${Math.ceil(entries.length/CHUNK)}`);
+    setP(pct,`Translating subtitles ${i+1}–${Math.min(i+CHUNK,entries.length)} / ${entries.length}…`);
+    lg(`Text-only batch ${Math.floor(i/CHUNK)+1}/${Math.ceil(entries.length/CHUNK)}`);
     const res=await translateBatch(key,chunk,maxCh);
     out.push(...res);
   }
@@ -517,42 +521,50 @@ async function translateAll(key,entries,maxCh){
 }
 
 async function translateBatch(key,chunk,maxCh){
-  const inp=chunk.map((e,i)=>({id:i,text:e.text}));
-  const prompt=`Translate each subtitle to natural Burmese (မြန်မာဘာသာ).
+  // Build a plain numbered list — just index + original text
+  const inputBlock=chunk.map((e,i)=>`${i+1}\n${e.text}`).join('\n\n');
 
-RULES — follow exactly:
-1. Max ${maxCh} characters per translated line.
-2. If a translation exceeds ${maxCh} chars, shorten it — keep the core meaning.
-3. NO line breaks (\\n or \\r) inside any string — single line per entry only.
-4. Output exactly ${chunk.length} items in the same order.
-5. Natural spoken Burmese — not overly formal or academic.
-6. Return ONLY raw JSON array. No markdown fences. No extra text.
+  const prompt=`Translate the following subtitles into natural Burmese (မြန်မာဘာသာ).
 
-Input JSON:
-${JSON.stringify(inp)}
+STRICT RULES:
+1. Keep the numbered format exactly — one number, one Burmese line per entry.
+2. Each translated line must be max ${maxCh} characters. Shorten if needed, keep meaning.
+3. NO line breaks inside any entry — single line only.
+4. Translate ALL ${chunk.length} entries. Do not skip or merge any.
+5. Natural spoken Burmese, not overly formal.
+6. Output ONLY the translated numbered block. No explanation, no extra text.
 
-Required output format:
-[{"id":0,"burmese":"..."},{"id":1,"burmese":"..."}]`;
+SUBTITLES:
+${inputBlock}`;
 
   const model=id('gModel').value;
   const data=await gemini(key,model,{
     contents:[{parts:[{text:prompt}]}],
     generationConfig:{maxOutputTokens:4096,temperature:0.2}
   });
-  let raw=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
-  raw=raw.replace(/```json|```/g,'').trim();
 
-  let parsed=null;
-  try{parsed=JSON.parse(raw);}
-  catch{const m=raw.match(/\[[\s\S]+\]/);if(m)try{parsed=JSON.parse(m[0]);}catch{}}
-
-  if(!parsed||!Array.isArray(parsed)){
-    lg(`Batch parse failed, using originals for this batch`,'wn');
+  const raw=data.candidates?.[0]?.content?.parts?.map(p=>p.text||'').join('')||'';
+  if(!raw.trim()){
+    lg('Empty translation response, keeping originals','wn');
     return chunk.map(e=>({...e,burmese:e.text}));
   }
+
+  // Parse: split on blank lines, each block = "N\nburmese text"
+  const blocks=raw.trim().split(/\n\s*\n/);
   const map={};
-  for(const t of parsed) map[t.id]=cleanLine(t.burmese||'',maxCh);
-  return chunk.map((e,i)=>({...e,burmese:map[i]||e.text}));
+  for(const block of blocks){
+    const lines=block.trim().split('\n');
+    if(lines.length<2) continue;
+    const idx=parseInt(lines[0].trim());
+    if(isNaN(idx)||idx<1||idx>chunk.length) continue;
+    map[idx]=cleanLine(lines.slice(1).join(' ').trim(),maxCh);
+  }
+
+  return chunk.map((e,i)=>{
+    const b=map[i+1]||'';
+    if(!b) lg(`Entry ${i+1} missing in translation, using original`,'wn');
+    return{...e,burmese:b||e.text};
+  });
 }
 
 // ── SRT builder — CapCut safe ─────────────────────────────────
